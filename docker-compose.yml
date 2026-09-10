@@ -1,0 +1,16 @@
+services:
+  rag-cli:
+    build: .
+    container_name: fym-rag-cli
+    volumes:
+      # Sincronización de código y datos en tiempo real
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./chroma_db:/app/chroma_db
+      - ./.env:/app/.env
+    environment:
+      # Ruta puente para que LangChain encuentre a Ollama en macOS
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    # Estas dos opciones permiten dejar el contenedor corriendo y acceder a su terminal
+    tty: true
+    stdin_open: true
