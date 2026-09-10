@@ -1,0 +1,14 @@
+# Core RAG y LangChain
+langchain
+langchain-community
+langchain-ollama
+
+# Procesamiento de documentos
+pypdf
+
+# Base de datos vectorial embebida
+chromadb
+
+# Interfaz de consola y utilidades
+rich
+python-dotenv

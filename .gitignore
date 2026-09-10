@@ -1,0 +1,15 @@
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Archivos de caché de Python
+__pycache__/
+*.pyc
+
+# Base de datos vectorial
+chroma_db/
+
+# Datos crudos (no subas los PDFs a GitHub)
+data/
+*.pdf
