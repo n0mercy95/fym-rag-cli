@@ -1,6 +1,6 @@
 import os
 import time
-import re # Librería nativa para buscar patrones de texto
+import re
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -24,19 +24,15 @@ def main():
     print("🏷️ Etiquetando capítulos...")
     capitulo_actual = "Prefacio_o_Indice"
     
-    # Expresión regular: Busca "Capitulo X" al inicio de una línea, ignorando mayúsculas y acentos.
-    # El "^" evita falsos positivos como "como vimos en el capítulo 4..." en medio de un párrafo.
+    # Expresión regular: Busca "Capitulo X" al inicio de una línea
     patron_capitulo = re.compile(r'(?m)^\s*CAP[IÍ]TULO\s+(\d+)')
 
     for doc in documentos_brutos:
-        # Buscamos si en esta página se menciona el inicio de un capítulo
         match = patron_capitulo.search(doc.page_content)
         if match:
-            # Si hay coincidencia, capturamos el número y actualizamos el rastreador
             numero_cap = match.group(1)
             capitulo_actual = f"Capitulo_{numero_cap}"
         
-        # Inyectamos la etiqueta del capítulo actual en los metadatos de la página
         doc.metadata["capitulo"] = capitulo_actual
 
     print("✂️ Dividiendo el texto en fragmentos (chunks)...")
@@ -46,7 +42,6 @@ def main():
         length_function=len,
     )
     
-    # El TextSplitter heredará automáticamente nuestro nuevo metadato 'capitulo' a cada fragmento
     chunks = text_splitter.split_documents(documentos_brutos)
     print(f"✅ Se generaron {len(chunks)} fragmentos etiquetados.")
 
@@ -56,7 +51,6 @@ def main():
         pagina = chunk.metadata.get("page", 0)
         capitulo = chunk.metadata.get("capitulo", "Sin_Capitulo")
         
-        # Nuevo formato de ID: fuente : capitulo : pagina : chunk_index
         chunk.metadata["id"] = f"{fuente}:{capitulo}:{pagina}:{i}"
 
     print("🧠 Conectando con Ollama y ChromaDB...")
@@ -75,19 +69,14 @@ def main():
         batch_ids = [chunk.metadata["id"] for chunk in batch]
         
         try:
-            # Intentamos guardar el bloque normal
             db.add_documents(documents=batch, ids=batch_ids)
             print(f"  -> Guardados {min(i + BATCH_SIZE, len(chunks))}/{len(chunks)} fragmentos.")
         
         except Exception as e:
-            # Si el bloque rompe Ollama (ej. tablas del apéndice), lo atrapamos aquí
             print(f"  ⚠️ Error en el lote {i} al {i + BATCH_SIZE}. Fragmento ilegible detectado. Saltando lote...")
-            
-            # Le damos 5 segundos de respiro a Ollama para que su motor interno se reinicie tras el colapso
             time.sleep(5)
-            continue # Saltamos al siguiente lote sin detener el script
+            continue
         
-        # Pausa normal de respiro
         time.sleep(1)
     
     print(f"🎉 ¡Ingesta completada con éxito en '{CHROMA_PATH}'!")

@@ -23,7 +23,7 @@ def main():
     embeddings = OllamaEmbeddings(model="nomic-embed-text", base_url="http://localhost:11434")
     db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embeddings)
     
-    # Subimos el umbral a 0.65 para evitar que pase basura matemática lejana
+    # Retriever estricto con umbral y filtro de metadatos
     retriever = db.as_retriever(
         search_type="similarity_score_threshold",
         search_kwargs={
@@ -65,7 +65,7 @@ def main():
             "chat_history": chat_history
         })
 
-        # PASO 2: EL CORTAFUEGOS DE PYTHON (Si el umbral de 0.65 los rechaza, frena aquí)
+        # PASO 2: EL CORTAFUEGOS DE PYTHON (Si el umbral los rechaza, frena aquí)
         if not docs:
             respuesta_fallida = "No tengo suficiente información en el texto para responder esto."
             console.print(f"\n[bold red]Respuesta:[/bold red]\n{respuesta_fallida}\n")
