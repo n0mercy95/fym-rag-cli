@@ -13,3 +13,6 @@ chroma_db/
 # Datos crudos (no subas los PDFs a GitHub)
 data/
 *.pdf
+
+# secretos
+.env 
