@@ -15,4 +15,4 @@ data/
 *.pdf
 
 # secretos
-.env 
+.env
