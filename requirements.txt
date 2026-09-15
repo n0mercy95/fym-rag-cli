@@ -9,6 +9,11 @@ pypdf
 # Base de datos vectorial embebida
 chromadb
 
+# Machine Learning y cálculo de similitudes (Doble Filtro)
+scikit-learn
+numpy
+scipy
+
 # Interfaz de consola y utilidades
 rich
 python-dotenv
