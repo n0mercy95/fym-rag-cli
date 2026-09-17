@@ -9,7 +9,8 @@ Actualmente en fase de Producto Mínimo Viable (MVP) altamente calibrado. El enf
 
 **Últimas implementaciones destacadas:**
 * **Sistema Anti-Alucinaciones (Doble Filtro):** Implementación de un cortafuegos de entrada (umbral estricto en el Retriever) y un guardián de salida basado en similitud de coseno (`scikit-learn`) calibrado empíricamente a 0.78 para bloquear respuestas fuera del contexto del libro.
-* **Memoria Conversacional Inteligente:** Capacidad de recordar el contexto de la charla, con un mecanismo de limpieza automática (`chat_history.clear()`) cuando el sistema detecta intentos de alucinación, evitando la contaminación a futuro.
+* **Memoria Conversacional Inteligente:** Capacidad de recordar el contexto de la charla, guardando las intercepciones del guardián en el historial para evitar contaminación sin causar amnesia a corto plazo.
+* **Sistema de Logging Centralizado:** Auditoría automática de eventos, errores de ingesta y *scores* matemáticos de validación, almacenados silenciosamente para facilitar el monitoreo.
 * **Modo Rayos X (Debug):** Visualización en tiempo real de los fragmentos exactos recuperados, sus puntajes de similitud y páginas de origen directamente en la terminal usando `rich`.
 
 ## Estructura del Proyecto
@@ -19,11 +20,15 @@ La arquitectura inicial está modularizada y orientada al dominio para facilitar
 * **`main.py`**: Enrutador y punto de entrada principal (CLI) del proyecto.
 * **`data/`**: Directorio para almacenar los documentos académicos crudos (PDFs).
 * **`chroma_db/`**: Base de datos vectorial embebida generada automáticamente.
+* **`logs/`**: Directorio autogenerado que almacena los registros de eventos (`app.log`) y errores del sistema.
 * **`src/`**: Directorio principal del código fuente refactorizado.
   * `chunking/`: Lógica para extraer, etiquetar (Regex) y fragmentar el texto.
-  * `vector_db/`: Gestión de la conexión a ChromaDB y vectorización por lotes (batching).
+  * `config/`: Configuraciones globales, incluyendo el sistema de *logging* (`logger.py`).
   * `ingestion/`: Orquestador del flujo de procesamiento de nuevos documentos.
-  * `llm/`: Motor de chat, configuración del *retriever* semántico, plantillas (*prompts*) y cortafuegos de validación (*guardrails*).
+  * `llm/`: Motor de chat interactivo, *retriever* semántico y cortafuegos de validación (*guardrails*).
+  * `prompts/`: Plantillas e instrucciones de sistema estrictas para el LLM.
+  * `utils/`: Funciones auxiliares y herramientas genéricas.
+  * `vector_db/`: Gestión de la conexión a ChromaDB y vectorización por lotes (batching).
 * **`dockerfile` / `docker-compose.yml`**: Configuración para aislar el entorno de Python manteniendo la ejecución de Ollama nativa en el host.
 * **`requirements.txt`**: Dependencias clave del proyecto (`langchain`, `chromadb`, `pypdf`, `rich`, `scikit-learn`, etc.).
 * **`.env`**: Archivo para la gestión segura de variables de entorno e integraciones (ignorado en Git por seguridad).
@@ -54,6 +59,8 @@ Abre otra pestaña en tu terminal, sitúate en la raíz del proyecto y prepara e
 
 ```bash
 python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ### 4. Ingesta de Datos (Vectorización del Libro)
