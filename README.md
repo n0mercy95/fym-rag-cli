@@ -14,14 +14,16 @@ Actualmente en fase de Producto Mínimo Viable (MVP) altamente calibrado. El enf
 
 ## Estructura del Proyecto
 
-La arquitectura inicial está modularizada de la siguiente manera para facilitar su ejecución local y en contenedores:
+La arquitectura inicial está modularizada y orientada al dominio para facilitar su ejecución local, pruebas unitarias y futura migración a FastAPI:
 
+* **`main.py`**: Enrutador y punto de entrada principal (CLI) del proyecto.
 * **`data/`**: Directorio para almacenar los documentos académicos crudos (PDFs).
 * **`chroma_db/`**: Base de datos vectorial embebida generada automáticamente.
-* **`src/`**: Directorio principal del código fuente.
-  * `ingest.py`: Script encargado de extraer, fragmentar (chunking), etiquetar capítulos con Regex, e insertar vectores por lotes (batching) en ChromaDB para proteger la RAM.
-  * `chat.py`: Bucle principal que gestiona la interfaz interactiva en la terminal, el doble filtro semántico y la comunicación con el LLM.
-  * `prompts.py`: Plantillas e instrucciones de sistema defensivas para mitigar alucinaciones y ruido del OCR.
+* **`src/`**: Directorio principal del código fuente refactorizado.
+  * `chunking/`: Lógica para extraer, etiquetar (Regex) y fragmentar el texto.
+  * `vector_db/`: Gestión de la conexión a ChromaDB y vectorización por lotes (batching).
+  * `ingestion/`: Orquestador del flujo de procesamiento de nuevos documentos.
+  * `llm/`: Motor de chat, configuración del *retriever* semántico, plantillas (*prompts*) y cortafuegos de validación (*guardrails*).
 * **`dockerfile` / `docker-compose.yml`**: Configuración para aislar el entorno de Python manteniendo la ejecución de Ollama nativa en el host.
 * **`requirements.txt`**: Dependencias clave del proyecto (`langchain`, `chromadb`, `pypdf`, `rich`, `scikit-learn`, etc.).
 * **`.env`**: Archivo para la gestión segura de variables de entorno e integraciones (ignorado en Git por seguridad).
@@ -40,31 +42,38 @@ Abre una terminal y descarga los modelos:
 ollama pull qwen2.5:3b
 ollama pull nomic-embed-text
 ```
-
 ### 2. Iniciar el Motor de Ollama
 Asegúrate de que el servicio de Ollama esté corriendo en el fondo. Si usas Mac/Windows con la aplicación de escritorio, basta con tenerla abierta. Si estás en Linux o prefieres la terminal, ejecuta:
+
 ```bash
 ollama serve
 ```
 
 ### 3. Configurar el Entorno Virtual (Python)
 Abre otra pestaña en tu terminal, sitúate en la raíz del proyecto y prepara el entorno de dependencias:
+
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
 ```
 
 ### 4. Ingesta de Datos (Vectorización del Libro)
-Antes de chatear, el sistema necesita leer el PDF (que debe estar en la carpeta data/) y generar la base de datos vectorial en chroma_db/. Este proceso requiere algo de RAM y toma unos minutos:
+Antes de chatear, el sistema necesita leer el PDF (que debe estar en la carpeta data/) y generar la base de datos vectorial en chroma_db/. Este proceso requiere algo de RAM y toma unos minutos. Utilizamos el enrutador principal con el modo de ingesta:
+
 ```bash
-python src/ingest.py
+python main.py --mode ingest
 ```
-**Nota**: este paso se hace solo 1 vez por cada PDF adjuntado. Si el proceso falla por algun motivo, borrar la carpeta de chroma_db y ejecutar de nuevo ingest.py.
+
+**Nota**: Este paso se hace solo 1 vez por cada PDF adjuntado. Si el proceso falla por algún motivo, borra la carpeta chroma_db/ y vuelve a ejecutar el comando.
 
 ### 5. Iniciar el Asistente
-Una vez completada la ingesta, puedes arrancar la interfaz de línea de comandos interactiva:
+Una vez completada la ingesta, puedes arrancar la interfaz interactiva delegando la ejecución al modo chat:
 
 ```bash
-python src/chat.py
+python main.py --mode chat
+```
+
+**Opcional**: para ver todos los comandos disponibles:
+
+```bash
+python main.py --help
 ```
