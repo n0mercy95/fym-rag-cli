@@ -15,9 +15,14 @@ from src.prompts.prompts import PROMPT_TEMPLATE
 from src.llm.retriever_builder import build_smart_retriever
 from src.llm.guardrails import validate_answer_with_cosine
 
+# 1. Importamos e inicializamos el logger
+from src.config.logger import get_logger
+logger = get_logger("ChatEngine")
+
 def start_interactive_chat(chroma_path: str):
     console = Console()
     console.print("[bold green]⚛️ Iniciando Asistente de Física RAG...[/bold green]")
+    logger.info("Inicializando motor de chat y conectando a ChromaDB/Ollama.")
 
     # 1. Inicializamos dependencias principales
     db = get_chroma_db(chroma_path)
@@ -34,19 +39,26 @@ def start_interactive_chat(chroma_path: str):
     qa_chain = create_stuff_documents_chain(llm, qa_prompt)
 
     chat_history = []
+    logger.info("Motor de chat listo. Esperando interacción del usuario.")
 
     # 3. Bucle Principal de Interacción
     while True:
         query_text = Prompt.ask("\n[bold blue]Haz una pregunta (o escribe 'salir')[/bold blue]")
         if query_text.lower() in ["salir", "exit", "quit"]:
+            logger.info("El usuario finalizó la sesión de chat con el comando de salida.")
             break
+
+        logger.info(f"Nueva consulta del usuario: '{query_text}'")
 
         # PASO 1: Recuperación
         docs = history_aware_retriever.invoke({"input": query_text, "chat_history": chat_history})
 
         if not docs:
+            logger.warning("Retriever no encontró documentos que superen el umbral para esta consulta.")
             console.print("\n[bold red]Respuesta:[/bold red]\nNo tengo suficiente información.\n")
             continue
+
+        logger.info(f"Retriever recuperó {len(docs)} fragmentos relevantes.")
 
         # PASO 2: RAYOS X - Imprimir exactamente qué texto encontró ChromaDB
         console.print("\n[magenta]--- [DEBUG] TEXTO REAL RECUPERADO DE LA BD ---[/magenta]")
@@ -63,6 +75,8 @@ def start_interactive_chat(chroma_path: str):
             print(texto, end="", flush=True)
             respuesta_completa += texto
         print("\n")
+        
+        logger.info("Generación de respuesta del LLM completada. Iniciando validación.")
 
         # PASO 4: Validación (Guardián)
         console.print("[dim]⏳ Validando matemáticamente...[/dim]")
@@ -72,6 +86,8 @@ def start_interactive_chat(chroma_path: str):
 
         if not es_valida:
             console.print("\n[bold red]⚠️ Alucinación interceptada. Respuesta corregida.[/bold red]\n")
+            logger.warning("Limpiando historial de conversación para evitar contaminación por alucinación.")
             chat_history.clear() 
         else:
+            logger.info("Validación exitosa. Agregando interacción al historial de conversación.")
             chat_history.extend([HumanMessage(content=query_text), AIMessage(content=respuesta_completa)])

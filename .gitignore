@@ -16,3 +16,6 @@ data/
 
 # secretos
 .env
+
+# logs
+logs/

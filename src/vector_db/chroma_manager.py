@@ -3,6 +3,12 @@ import time
 from langchain_ollama import OllamaEmbeddings
 from langchain_chroma import Chroma
 
+# 1. Importamos el logger
+from src.config.logger import get_logger
+
+# 2. Inicializamos el logger para este módulo específico
+logger = get_logger("VectorDB")
+
 def get_chroma_db(chroma_path: str) -> Chroma:
     """
     Inicializa y retorna la conexión a ChromaDB.
@@ -22,9 +28,12 @@ def guardar_chunks_en_chroma(chunks: list, chroma_path: str, batch_size: int = 2
     para evitar desbordamientos de memoria.
     """
     print("🧠 Conectando con Ollama y ChromaDB...")
+    logger.info(f"Conectando a ChromaDB en {chroma_path} y preparando inserción.")
+    
     db = get_chroma_db(chroma_path)
 
     print(f"📦 Insertando fragmentos en lotes de {batch_size} para proteger la RAM...")
+    logger.info(f"Iniciando inserción de {len(chunks)} fragmentos en lotes de {batch_size}.")
     
     for i in range(0, len(chunks), batch_size):
         batch = chunks[i:i + batch_size]
@@ -35,10 +44,23 @@ def guardar_chunks_en_chroma(chunks: list, chroma_path: str, batch_size: int = 2
             print(f"  -> Guardados {min(i + batch_size, len(chunks))}/{len(chunks)} fragmentos.")
         
         except Exception as e:
-            print(f"  ⚠️ Error en el lote {i} al {i + batch_size}. Fragmento ilegible detectado. Saltando lote...")
-            # Aquí he agregado el mensaje de error real por si acaso falla algo específico
-            print(f"  [Detalle del error]: {e}")
+            error_msg = str(e)
+            
+            # Interceptamos el error específico de Ollama (status code 500 / EOF)
+            if "status code: 500" in error_msg or "EOF" in error_msg:
+                mensaje_limpio = f"Ollama rechazó el lote (posible texto corrupto al final del PDF). Detalle: {error_msg}"
+                print(f"  ⚠️ Lote {i} al {i + batch_size} rechazado por Ollama. Saltando lote...")
+                
+                # Registramos en el log de forma limpia, SIN exc_info=True
+                logger.warning(f"Fallo en lote {i}-{i+batch_size}: {mensaje_limpio}")
+            else:
+                # Si es un error distinto, sí queremos ver el rastro técnico completo
+                print(f"  ❌ Error inesperado en el lote {i} al {i + batch_size}. Revisa el log.")
+                logger.error(f"Fallo crítico al insertar el lote {i}-{i+batch_size}: {e}", exc_info=True)
+            
             time.sleep(5)
             continue
         
         time.sleep(1)
+    
+    logger.info("Proceso de inserción en ChromaDB finalizado con éxito.")
