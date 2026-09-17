@@ -80,14 +80,18 @@ def start_interactive_chat(chroma_path: str):
 
         # PASO 4: Validación (Guardián)
         console.print("[dim]⏳ Validando matemáticamente...[/dim]")
-        # Extraemos el modelo de embeddings desde la db para pasárselo al guardián
         es_valida, score = validate_answer_with_cosine(respuesta_completa, docs, db.embeddings)
         console.print(f"[dim][DEBUG] Score de Similitud Coseno: {score:.4f}[/dim]")
 
         if not es_valida:
-            console.print("\n[bold red]⚠️ Alucinación interceptada. Respuesta corregida.[/bold red]\n")
-            logger.warning("Limpiando historial de conversación para evitar contaminación por alucinación.")
-            chat_history.clear() 
+            respuesta_corregida = "No tengo suficiente información."
+            console.print(f"\n[bold red]⚠️ Alucinación interceptada. Respuesta corregida:[/bold red]\n{respuesta_corregida}\n")
+            
+            logger.warning("Alucinación interceptada. Guardando respuesta segura en el historial para mantener contexto.")
+            
+            # ¡NUEVO!: En lugar de borrar la memoria, le enseñamos que no sabe la respuesta
+            chat_history.extend([HumanMessage(content=query_text), AIMessage(content=respuesta_corregida)])
         else:
             logger.info("Validación exitosa. Agregando interacción al historial de conversación.")
             chat_history.extend([HumanMessage(content=query_text), AIMessage(content=respuesta_completa)])
+            
