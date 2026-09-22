@@ -12,8 +12,7 @@ logger = get_logger("VectorDB")
 def get_chroma_db(chroma_path: str) -> Chroma:
     """
     Inicializa y retorna la conexión a ChromaDB.
-    ¡Esto es clave! Ahora puedes importar esta función también en chat_engine.py
-    para no repetir este código de conexión.
+    Se utiliza al levantar el servidor web para mantener una conexión persistente.
     """
     embeddings = OllamaEmbeddings(
         model="nomic-embed-text",
@@ -22,16 +21,15 @@ def get_chroma_db(chroma_path: str) -> Chroma:
     
     return Chroma(persist_directory=chroma_path, embedding_function=embeddings)
 
-def guardar_chunks_en_chroma(chunks: list, chroma_path: str, batch_size: int = 200):
+def guardar_chunks_en_chroma(chunks: list, db_instance: Chroma, batch_size: int = 200):
     """
     Recibe una lista de fragmentos y los guarda en ChromaDB usando lotes (batching)
-    para evitar desbordamientos de memoria.
+    para evitar desbordamientos de memoria. Utiliza una conexión ya existente (db_instance)
+    para evitar bloqueos de lectura/escritura (Error 1032).
     """
-    print("🧠 Conectando con Ollama y ChromaDB...")
-    logger.info(f"Conectando a ChromaDB en {chroma_path} y preparando inserción.")
+    print("🧠 Preparando inserción usando la base vectorial activa...")
+    logger.info("Recibida instancia de ChromaDB viva. Preparando inserción.")
     
-    db = get_chroma_db(chroma_path)
-
     print(f"📦 Insertando fragmentos en lotes de {batch_size} para proteger la RAM...")
     logger.info(f"Iniciando inserción de {len(chunks)} fragmentos en lotes de {batch_size}.")
     
@@ -40,7 +38,8 @@ def guardar_chunks_en_chroma(chunks: list, chroma_path: str, batch_size: int = 2
         batch_ids = [chunk.metadata["id"] for chunk in batch]
         
         try:
-            db.add_documents(documents=batch, ids=batch_ids)
+            # Usamos directamente db_instance en lugar de abrir una conexión nueva
+            db_instance.add_documents(documents=batch, ids=batch_ids)
             print(f"  -> Guardados {min(i + batch_size, len(chunks))}/{len(chunks)} fragmentos.")
         
         except Exception as e:
