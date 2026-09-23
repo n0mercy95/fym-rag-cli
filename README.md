@@ -84,3 +84,42 @@ python main.py --mode chat
 ```bash
 python main.py --help
 ```
+
+### 6. Levantar el Servidor Web
+Si prefieres interactuar con el sistema a través de peticiones HTTP (ideal para conectar un frontend o usar Postman), levanta el servidor integrado:
+
+```bash
+uvicorn src.api.server:app --reload
+```
+
+El servidor quedará escuchando en http://127.0.0.1:8000. Puedes ver la documentación interactiva (Swagger) visitando http://127.0.0.1:8000/docs.
+
+### 7. Consultar la API (Postman / cURL)
+Una vez que el servidor esté corriendo, puedes utilizar los siguientes endpoints:
+
+7.1 Ingesta de Datos (POST /api/v1/ingest)
+Para vectorizar un documento a través de la API:
+
+```bash
+curl -X POST http://[IP_ADDRESS]/api/v1/ingest -H "Content-Type: application/json" -d "{\"file_path\": \"data/Sears_Zemansky_F_sica_Universitaria_Vol_1.pdf\"}"
+```
+
+7.2 Chatear con el Documento (POST /api/v1/chat)
+Envía tus consultas teóricas manteniendo un ID de sesión para la memoria conversacional:
+
+```bash
+curl -X POST [http://127.0.0.1:8000/api/v1/chat](http://127.0.0.1:8000/api/v1/chat) \
+     -H "Content-Type: application/json" \
+     -d '{
+           "session_id": "mi_sesion_estudio",
+           "query": "hola, dime que es el momento de inercia"
+         }'
+```
+
+Respuesta Exitosa Esperada (puede variar):
+
+{
+    "answer": "El momento de inercia es una medida física que indica cuán difícil es cambiar el estado de rotación de un cuerpo. Es una propiedad del cuerpo y depende tanto de su forma como de la distribución de masa dentro del cuerpo. Cuanto mayor sea el valor del momento de inercia, más resistente será al cambio en su estado de rotación.\n\nEl momento de inercia se puede expresar como una suma para todas las partículas que componen el cuerpo, cada una de las cuales está a una distancia perpendicular al eje de rotación. Este concepto es crucial en la comprensión del movimiento rotacional y juega un papel importante en muchas aplicaciones físicas, incluyendo la mecánica de fluidos y la ingeniería.\n\nEn términos matemáticos, el momento de inercia I de un cuerpo alrededor de un eje dado se expresa como una suma de los productos de las masas de cada particula por sus respectivas distancias al eje.",
+    "hallucination_intercepted": false,
+    "cosine_score": 0.9242213791825862
+}
