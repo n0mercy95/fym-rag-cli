@@ -4,6 +4,7 @@ from langchain_ollama import ChatOllama
 from langchain_core.prompts import PromptTemplate
 
 from src.config.logger import get_logger
+from src.config.settings import OLLAMA_BASE_URL, OLLAMA_MODEL
 from src.prompts.prompts import JUDGE_PROMPT_TEMPLATE
 # Inicializamos el logger para este módulo
 logger = get_logger("Guardrails")
@@ -55,7 +56,7 @@ def evaluate_with_llm_judge(answer: str, docs: list) -> tuple[bool, str]:
     print("="*50 + "\n")
     
     judge_prompt = PromptTemplate.from_template(JUDGE_PROMPT_TEMPLATE)
-    juez_llm = ChatOllama(model="qwen2.5:3b", temperature=0)
+    juez_llm = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_BASE_URL, temperature=0)
     
     judge_chain = judge_prompt | juez_llm
     
