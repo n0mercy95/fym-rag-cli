@@ -1,7 +1,11 @@
 # Core RAG y LangChain
 langchain
+langchain-core
 langchain-community
+langchain-classic
 langchain-ollama
+langchain-text-splitters
+langchain-chroma
 
 # Procesamiento de documentos
 pypdf
@@ -13,6 +17,14 @@ chromadb
 scikit-learn
 numpy
 scipy
+
+# Retrieval avanzado (BM25 + Cross-Encoder Reranker)
+rank-bm25
+sentence-transformers
+
+# API web
+fastapi
+uvicorn
 
 # Interfaz de consola y utilidades
 rich
