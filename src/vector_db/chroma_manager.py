@@ -53,10 +53,13 @@ def guardar_chunks_en_chroma(chunks: list, db_instance: Chroma, batch_size: int 
                 # Registramos en el log de forma limpia, SIN exc_info=True
                 logger.warning(f"Fallo en lote {i}-{i+batch_size}: {mensaje_limpio}")
             else:
-                # Si es un error distinto, sí queremos ver el rastro técnico completo
-                print(f"  ❌ Error inesperado en el lote {i} al {i + batch_size}. Revisa el log.")
+                import traceback
+                # Imprimimos el error directamente en la terminal
+                print(f"  ❌ Error inesperado en el lote {i} al {i + batch_size}: {e}")
+                traceback.print_exc() # Esto forzará el rastro técnico (Traceback) en la consola
+                
+                # Mantenemos el logger por si la carpeta existe
                 logger.error(f"Fallo crítico al insertar el lote {i}-{i+batch_size}: {e}", exc_info=True)
-            
             time.sleep(5)
             continue
         

@@ -8,7 +8,7 @@ from src.config.logger import get_logger
 from src.vector_db.chroma_manager import get_chroma_db
 from src.prompts.prompts import PROMPT_TEMPLATE
 from src.llm.retriever_builder import build_smart_retriever
-from src.llm.guardrails import validate_answer_with_cosine
+from src.llm.guardrails import validate_answer_with_cosine, evaluate_with_llm_judge
 from src.ingestion.document_processor import run_ingestion
 
 class RAGService:
@@ -67,22 +67,37 @@ class RAGService:
         
         self.logger.info(f"[{session_id}] Respuesta generada por el LLM:\n{respuesta_completa}\n{'-'*40}")
         
-        # PASO 3: Validación (Guardián)
-        es_valida, score = validate_answer_with_cosine(respuesta_completa, docs, self.db.embeddings)
+       # ... (Tu código anterior: PASO 1 y PASO 2) ...
+
+        # PASO 3: Validación Matemática (Coseno)
+        es_valida_coseno, score = validate_answer_with_cosine(respuesta_completa, docs, self.db.embeddings)
         
-        if not es_valida:
-            self.logger.warning(f"[{session_id}] Alucinación interceptada. Score: {score:.4f}")
+        if not es_valida_coseno:
+            self.logger.warning(f"[{session_id}] Alucinación interceptada por Coseno. Score: {score:.4f}")
             respuesta_segura = "No tengo suficiente información."
             chat_history.extend([HumanMessage(content=query), AIMessage(content=respuesta_segura)])
-            
             return {
                 "answer": respuesta_segura,
                 "hallucination_intercepted": True,
                 "cosine_score": score
             }
+            
+        # # PASO 4: Validación Lógica (LLM Juez)
+        # self.logger.info(f"[{session_id}] Coseno aprobado ({score:.4f}). Consultando al Juez LLM...")
+        # juez_aprueba, veredicto_crudo = evaluate_with_llm_judge(respuesta_completa, docs)
         
-        # PASO 4: Guardado y retorno exitoso (¡Esto era lo que faltaba!)
-        self.logger.info(f"[{session_id}] Respuesta válida. Score: {score:.4f}")
+        # if not juez_aprueba:
+        #     self.logger.warning(f"[{session_id}] Juez LLM detectó falacia lógica. Veredicto crudo: {veredicto_crudo}")
+        #     respuesta_segura = "Lo siento, identifiqué una inconsistencia física en mi razonamiento y preferí descartar la respuesta."
+        #     chat_history.extend([HumanMessage(content=query), AIMessage(content=respuesta_segura)])
+        #     return {
+        #         "answer": respuesta_segura,
+        #         "hallucination_intercepted": True,
+        #         "cosine_score": score
+        #     }
+
+        # PASO 5: Guardado y retorno exitoso
+        self.logger.info(f"[{session_id}] Juez LLM aprobó la respuesta.")
         chat_history.extend([HumanMessage(content=query), AIMessage(content=respuesta_completa)])
         
         return {
