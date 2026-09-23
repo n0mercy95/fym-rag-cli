@@ -5,6 +5,7 @@ from langchain_chroma import Chroma
 
 # 1. Importamos el logger
 from src.config.logger import get_logger
+from src.config.settings import OLLAMA_BASE_URL, OLLAMA_EMBED_MODEL
 
 # 2. Inicializamos el logger para este módulo específico
 logger = get_logger("VectorDB")
@@ -15,8 +16,8 @@ def get_chroma_db(chroma_path: str) -> Chroma:
     Se utiliza al levantar el servidor web para mantener una conexión persistente.
     """
     embeddings = OllamaEmbeddings(
-        model="nomic-embed-text",
-        base_url="http://localhost:11434"
+        model=OLLAMA_EMBED_MODEL,
+        base_url=OLLAMA_BASE_URL
     )
     
     return Chroma(persist_directory=chroma_path, embedding_function=embeddings)

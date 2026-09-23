@@ -5,6 +5,7 @@ from langchain_classic.chains.combine_documents import create_stuff_documents_ch
 from langchain_core.messages import HumanMessage, AIMessage
 
 from src.config.logger import get_logger
+from src.config.settings import OLLAMA_BASE_URL, OLLAMA_MODEL
 from src.vector_db.chroma_manager import get_chroma_db
 from src.prompts.prompts import PROMPT_TEMPLATE
 from src.llm.retriever_builder import build_smart_retriever
@@ -20,7 +21,7 @@ class RAGService:
         # 2. Conexiones persistentes (¡solo se ejecutan UNA vez al arrancar!)
         self.chroma_path = chroma_path
         self.db = get_chroma_db(chroma_path)
-        self.llm = ChatOllama(model="qwen2.5:3b", base_url="http://localhost:11434", temperature=0)
+        self.llm = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_BASE_URL, temperature=0)
         
         # 3. Construcción de Cadenas de Langchain
         self.history_aware_retriever = build_smart_retriever(self.db, self.llm)

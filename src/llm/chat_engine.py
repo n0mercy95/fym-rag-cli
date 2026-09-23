@@ -14,6 +14,7 @@ from src.prompts.prompts import PROMPT_TEMPLATE
 
 from src.llm.retriever_builder import build_smart_retriever
 from src.llm.guardrails import validate_answer_with_cosine
+from src.config.settings import OLLAMA_BASE_URL, OLLAMA_MODEL
 
 # 1. Importamos e inicializamos el logger
 from src.config.logger import get_logger
@@ -26,7 +27,7 @@ def start_interactive_chat(chroma_path: str):
 
     # 1. Inicializamos dependencias principales
     db = get_chroma_db(chroma_path)
-    llm = ChatOllama(model="qwen2.5:3b", base_url="http://localhost:11434", temperature=0)
+    llm = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_BASE_URL, temperature=0)
     
     # 2. Construimos cadenas (Chains)
     history_aware_retriever = build_smart_retriever(db, llm)
