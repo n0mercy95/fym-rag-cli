@@ -1,38 +1,38 @@
 # fym-rag-cli
 
-Un asistente de línea de comandos (CLI) basado en la arquitectura RAG (Retrieval-Augmented Generation) para consultar textos académicos de física y matemáticas de forma 100% local.
+Un asistente de línea de comandos (CLI) y API REST basado en la arquitectura RAG (Retrieval-Augmented Generation) para consultar textos académicos de física y matemáticas de forma 100% local.
 
-Este proyecto busca procesar libros densos, almacenarlos de manera vectorial y permitir al usuario hacer consultas teóricas mediante un chat interactivo en la terminal, aprovechando modelos de lenguaje (LLMs) open-source a través de Ollama.
+Este proyecto busca procesar libros densos, almacenarlos de manera vectorial y permitir al usuario hacer consultas teóricas mediante un chat interactivo en la terminal o vía peticiones HTTP, aprovechando modelos de lenguaje (LLMs) open-source a través de Ollama.
 
 ## Estado del Proyecto y Novedades
 Actualmente en fase de Producto Mínimo Viable (MVP) altamente calibrado. El enfoque inicial está en el procesamiento de texto plano y almacenamiento en ChromaDB, con miras a escalar en el futuro hacia un RAG Visual capaz de interpretar ecuaciones y gráficos complejos.
 
 **Últimas implementaciones destacadas:**
-* **Sistema Anti-Alucinaciones (Doble Filtro):** Implementación de un cortafuegos de entrada (umbral estricto en el Retriever) y un guardián de salida basado en similitud de coseno (`scikit-learn`) calibrado empíricamente a 0.78 para bloquear respuestas fuera del contexto del libro.
+* **Búsqueda Avanzada (Reranker):** Combinación de búsqueda vectorial y léxica (BM25), filtrada por un Cross-Encoder (`BAAI/bge-reranker-base`) que discrimina la teoría pura de los ejercicios matemáticos.
+* **Sistema Anti-Alucinaciones (Doble Filtro):** Implementación de un cortafuegos de entrada (*Negative Prompting* estricto) y un guardián de salida basado en similitud de coseno (`scikit-learn`) calibrado empíricamente a 0.65 para bloquear respuestas fuera del contexto del libro permitiendo paráfrasis didáctica.
 * **Memoria Conversacional Inteligente:** Capacidad de recordar el contexto de la charla, guardando las intercepciones del guardián en el historial para evitar contaminación sin causar amnesia a corto plazo.
-* **Sistema de Logging Centralizado:** Auditoría automática de eventos, errores de ingesta y *scores* matemáticos de validación, almacenados silenciosamente para facilitar el monitoreo.
-* **Modo Rayos X (Debug):** Visualización en tiempo real de los fragmentos exactos recuperados, sus puntajes de similitud y páginas de origen directamente en la terminal usando `rich`.
+* **Arquitectura API:** Migración estructural a FastAPI para ofrecer los servicios RAG a través de endpoints RESTful.
 
 ## Estructura del Proyecto
 
-La arquitectura inicial está modularizada y orientada al dominio para facilitar su ejecución local, pruebas unitarias y futura migración a FastAPI:
+La arquitectura inicial está modularizada y orientada al dominio para facilitar su ejecución local, pruebas unitarias y su despliegue como API:
 
 * **`main.py`**: Enrutador y punto de entrada principal (CLI) del proyecto.
 * **`data/`**: Directorio para almacenar los documentos académicos crudos (PDFs).
 * **`chroma_db/`**: Base de datos vectorial embebida generada automáticamente.
 * **`logs/`**: Directorio autogenerado que almacena los registros de eventos (`app.log`) y errores del sistema.
 * **`src/`**: Directorio principal del código fuente refactorizado.
+  * `api/`: Controladores y rutas del servidor FastAPI (`server.py`, `routes.py`, `services.py`).
   * `chunking/`: Lógica para extraer, etiquetar (Regex) y fragmentar el texto.
   * `config/`: Configuraciones globales, incluyendo el sistema de *logging* (`logger.py`).
   * `ingestion/`: Orquestador del flujo de procesamiento de nuevos documentos.
-  * `llm/`: Motor de chat interactivo, *retriever* semántico y cortafuegos de validación (*guardrails*).
+  * `llm/`: Motor de chat interactivo, *retriever* semántico avanzado y filtros de validación (*guardrails*).
   * `prompts/`: Plantillas e instrucciones de sistema estrictas para el LLM.
   * `utils/`: Funciones auxiliares y herramientas genéricas.
-  * `vector_db/`: Gestión de la conexión a ChromaDB y vectorización por lotes (batching).
+  * `vector_db/`: Gestión de la conexión a ChromaDB y vectorización por lotes protegida contra desbordamientos de RAM.
 * **`dockerfile` / `docker-compose.yml`**: Configuración para aislar el entorno de Python manteniendo la ejecución de Ollama nativa en el host.
-* **`requirements.txt`**: Dependencias clave del proyecto (`langchain`, `chromadb`, `pypdf`, `rich`, `scikit-learn`, etc.).
-* **`.env`**: Archivo para la gestión segura de variables de entorno e integraciones (ignorado en Git por seguridad).
-
+* **`requirements.txt`**: Dependencias clave del proyecto (`fastapi`, `langchain`, `chromadb`, `sentence-transformers`, `scikit-learn`, etc.).
+* **`.env`**: Archivo para la gestión segura de variables de entorno e integraciones.
 ---
 
 ## Guía de Instalación y Uso Local
