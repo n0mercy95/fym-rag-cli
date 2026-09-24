@@ -18,3 +18,6 @@ OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 # --- API Server ---
 API_HOST = os.getenv("API_HOST", "127.0.0.1")
 API_PORT = int(os.getenv("API_PORT", "8000"))
+
+# --- Redis ---
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")

@@ -10,13 +10,12 @@ Actualmente en fase de Producto Mínimo Viable (MVP) altamente calibrado. El enf
 **Últimas implementaciones destacadas:**
 * **Búsqueda Avanzada (Reranker):** Combinación de búsqueda vectorial y léxica (BM25), filtrada por un Cross-Encoder (`BAAI/bge-reranker-base`) que discrimina la teoría pura de los ejercicios matemáticos.
 * **Sistema Anti-Alucinaciones (Doble Filtro):** Implementación de un cortafuegos de entrada (*Negative Prompting* estricto) y un guardián de salida basado en similitud de coseno (`scikit-learn`) calibrado empíricamente a 0.65 para bloquear respuestas fuera del contexto del libro permitiendo paráfrasis didáctica.
-* **Memoria Conversacional Inteligente:** Capacidad de recordar el contexto de la charla, guardando las intercepciones del guardián en el historial para evitar contaminación sin causar amnesia a corto plazo.
-* **Arquitectura API:** Migración estructural a FastAPI para ofrecer los servicios RAG a través de endpoints RESTful.
+* **Gestión de Memoria Escalable (Redis):** Integración de Redis para externalizar el historial de chat. Esto vuelve a la API completamente *stateless*, permitiendo manejar múltiples sesiones simultáneas sin que se crucen los contextos y previniendo la contaminación de la memoria cuando el guardián intercepta una alucinación.
+* **Arquitectura API y Contenedores:** Migración estructural a FastAPI para ofrecer los servicios RAG a través de endpoints RESTful, respaldado por Docker para orquestar los servicios.
 
 ## Estructura del Proyecto
 
 La arquitectura inicial está modularizada y orientada al dominio para facilitar su ejecución local, pruebas unitarias y su despliegue como API:
-
 * **`main.py`**: Enrutador y punto de entrada principal (CLI) del proyecto.
 * **`data/`**: Directorio para almacenar los documentos académicos crudos (PDFs).
 * **`chroma_db/`**: Base de datos vectorial embebida generada automáticamente.
@@ -28,11 +27,12 @@ La arquitectura inicial está modularizada y orientada al dominio para facilitar
   * `ingestion/`: Orquestador del flujo de procesamiento de nuevos documentos.
   * `llm/`: Motor de chat interactivo, *retriever* semántico avanzado y filtros de validación (*guardrails*).
   * `prompts/`: Plantillas e instrucciones de sistema estrictas para el LLM.
-  * `utils/`: Funciones auxiliares y herramientas genéricas.
+  * `utils/`: Funciones auxiliares y herramientas genéricas (incluyendo `redis_manager.py`).
   * `vector_db/`: Gestión de la conexión a ChromaDB y vectorización por lotes protegida contra desbordamientos de RAM.
-* **`dockerfile` / `docker-compose.yml`**: Configuración para aislar el entorno de Python manteniendo la ejecución de Ollama nativa en el host.
-* **`requirements.txt`**: Dependencias clave del proyecto (`fastapi`, `langchain`, `chromadb`, `sentence-transformers`, `scikit-learn`, etc.).
+* **`dockerfile` / `docker-compose.yml`**: Configuración para orquestar Redis y FastAPI en un entorno aislado, manteniendo la ejecución de Ollama nativa en el host.
+* **`requirements.txt`**: Dependencias clave del proyecto (`fastapi`, `langchain`, `chromadb`, `sentence-transformers`, `scikit-learn`, `redis`, etc.).
 * **`.env`**: Archivo para la gestión segura de variables de entorno e integraciones.
+
 ---
 
 ## Guía de Instalación y Uso Local
@@ -47,14 +47,31 @@ Abre una terminal y descarga los modelos:
 ollama pull qwen2.5:3b
 ollama pull nomic-embed-text
 ```
-### 2. Iniciar el Motor de Ollama
+
+### 2. Levantar la Infraestructura (Docker y API)
+Dependiendo de si quieres ejecutar la API dentro de Docker o directamente en tu terminal (para desarrollo), elige una de estas dos opciones:
+
+Opción A: Todo en Docker (Recomendado para Producción/Uso estable)
+Levanta Redis y el servidor FastAPI simultáneamente con un solo comando.
+```bash
+docker-compose up --build
+```
+
+Opción B: Modo Híbrido (Recomendado para Desarrollo)
+Si prefieres ver los logs de FastAPI en tu terminal local, levanta solo la base de datos de Redis en Docker:
+
+```bash
+docker-compose up -d redis
+```
+
+### 3. Iniciar el Motor de Ollama
 Asegúrate de que el servicio de Ollama esté corriendo en el fondo. Si usas Mac/Windows con la aplicación de escritorio, basta con tenerla abierta. Si estás en Linux o prefieres la terminal, ejecuta:
 
 ```bash
 ollama serve
 ```
 
-### 3. Configurar el Entorno Virtual (Python)
+### 4. Configurar el Entorno Virtual (Python)
 Abre otra pestaña en tu terminal, sitúate en la raíz del proyecto y prepara el entorno de dependencias:
 
 ```bash
@@ -63,7 +80,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. Ingesta de Datos (Vectorización del Libro)
+### 5. Ingesta de Datos (Vectorización del Libro)
 Antes de chatear, el sistema necesita leer el PDF (que debe estar en la carpeta data/) y generar la base de datos vectorial en chroma_db/. Este proceso requiere algo de RAM y toma unos minutos. Utilizamos el enrutador principal con el modo de ingesta:
 
 ```bash
@@ -72,7 +89,7 @@ python main.py --mode ingest
 
 **Nota**: Este paso se hace solo 1 vez por cada PDF adjuntado. Si el proceso falla por algún motivo, borra la carpeta chroma_db/ y vuelve a ejecutar el comando.
 
-### 5. Iniciar el Asistente
+### 6. Iniciar el Asistente
 Una vez completada la ingesta, puedes arrancar la interfaz interactiva delegando la ejecución al modo chat:
 
 ```bash
@@ -85,7 +102,7 @@ python main.py --mode chat
 python main.py --help
 ```
 
-### 6. Levantar el Servidor Web
+### 7. Levantar el Servidor Web
 Si prefieres interactuar con el sistema a través de peticiones HTTP (ideal para conectar un frontend o usar Postman), levanta el servidor integrado:
 
 ```bash
@@ -94,8 +111,8 @@ uvicorn src.api.server:app --reload
 
 El servidor quedará escuchando en http://127.0.0.1:8000. Puedes ver la documentación interactiva (Swagger) visitando http://127.0.0.1:8000/docs.
 
-### 7. Consultar la API (Postman / cURL)
-7.1 Ingesta de Datos (POST /api/v1/ingest)
+### 8. Consultar la API (Postman / cURL)
+8.1 Ingesta de Datos (POST /api/v1/ingest)
 Para vectorizar un documento a través de la API, debes enviar el archivo PDF directamente utilizando el formato multipart/form-data:
 
 Opción A: Usando Postman
@@ -117,7 +134,7 @@ curl -X 'POST' \
   -F 'file=@./data/Sears_Zemansky_F_sica_Universitaria_Vol_1.pdf'
 ```
 
-7.2 Chatear con el Documento (POST /api/v1/chat)
+8.2 Chatear con el Documento (POST /api/v1/chat)
 Envía tus consultas teóricas manteniendo un ID de sesión para la memoria conversacional:
 
 ```bash

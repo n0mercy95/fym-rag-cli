@@ -14,3 +14,18 @@ services:
     # Estas dos opciones permiten dejar el contenedor corriendo y acceder a su terminal
     tty: true
     stdin_open: true
+    # Le indica a Docker que levante Redis antes que tu API
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: fym-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:
