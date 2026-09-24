@@ -6,6 +6,7 @@ langchain-classic
 langchain-ollama
 langchain-text-splitters
 langchain-chroma
+langchain-community>=0.0.29
 
 # Procesamiento de documentos
 pypdf
@@ -29,3 +30,6 @@ uvicorn
 # Interfaz de consola y utilidades
 rich
 python-dotenv
+
+# Cache
+redis>=5.0.0
